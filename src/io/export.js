@@ -1,130 +1,164 @@
 // ----------------------------------------------
-// EXPORT.JS – Export PNG, JPG, GIF
+// EXPORT.JS – Full export with PNG, JPG, GIF, PawMage
 // KittyCreate Studio v1
 // ----------------------------------------------
 
 import { getCanvas, getCanvasContext, getCanvasSize } from '../core/canvas.js';
 import { getLayers, renderLayers } from '../core/layers.js';
 import { getFrames } from '../animation/animation.js';
+import { showStatus } from '../utils/utils.js';
 
-// --- State ---
 let ctx = null;
 let canvas = null;
 
-// --- Init ---
 export function initExport(context, canvasEl) {
     ctx = context;
     canvas = canvasEl;
 
-    // Bind export buttons
     document.getElementById('export-png')?.addEventListener('click', () => exportPNG());
     document.getElementById('export-jpg')?.addEventListener('click', () => exportJPG());
-    document.getElementById('export-gif')?.addEventListener('click', () => exportGIF());
+    document.getElementById('export-gif')?.addEventListener('click', () => {
+        // Use animation module's GIF export
+        const anim = window.__animation;
+        if (anim && anim.exportGIF) {
+            anim.exportGIF();
+        } else {
+            showStatus('⚠️ Animation module not loaded');
+        }
+    });
+    document.getElementById('export-pawmage')?.addEventListener('click', () => exportPawMage());
 
     console.log('📦 Export module ready');
 }
 
-// --- Export PNG ---
 export function exportPNG(filename = 'kitty-export.png') {
-    const layers = getLayers();
-    const tempCanvas = document.createElement('canvas');
-    const { width, height } = getCanvasSize();
-    tempCanvas.width = width;
-    tempCanvas.height = height;
-    const tempCtx = tempCanvas.getContext('2d');
-
-    // Composite all visible layers
-    tempCtx.fillStyle = '#ffffff';
-    tempCtx.fillRect(0, 0, width, height);
-
-    for (const layer of layers) {
-        if (!layer.visible) continue;
-        tempCtx.globalAlpha = layer.opacity;
-        tempCtx.globalCompositeOperation = layer.blendMode;
-        tempCtx.drawImage(layer.canvas, 0, 0);
-    }
-
-    // Download
+    const data = compositeLayers();
     const link = document.createElement('a');
     link.download = filename;
-    link.href = tempCanvas.toDataURL('image/png');
+    link.href = data;
     link.click();
-
-    updateStatus('📤 Exported PNG');
+    showStatus('📤 Exported PNG');
 }
 
-// --- Export JPG ---
 export function exportJPG(filename = 'kitty-export.jpg', quality = 0.92) {
+    const data = compositeLayers('image/jpeg', quality);
+    const link = document.createElement('a');
+    link.download = filename;
+    link.href = data;
+    link.click();
+    showStatus('📤 Exported JPG');
+}
+
+function compositeLayers(format = 'image/png', quality = 1) {
     const layers = getLayers();
-    const tempCanvas = document.createElement('canvas');
     const { width, height } = getCanvasSize();
+    const tempCanvas = document.createElement('canvas');
     tempCanvas.width = width;
     tempCanvas.height = height;
-    const tempCtx = tempCanvas.getContext('2d');
+    const tCtx = tempCanvas.getContext('2d');
 
-    // Composite with white background (JPG doesn't support alpha)
-    tempCtx.fillStyle = '#ffffff';
-    tempCtx.fillRect(0, 0, width, height);
+    // White background for JPG
+    if (format === 'image/jpeg') {
+        tCtx.fillStyle = '#ffffff';
+        tCtx.fillRect(0, 0, width, height);
+    }
 
     for (const layer of layers) {
         if (!layer.visible) continue;
-        tempCtx.globalAlpha = layer.opacity;
-        tempCtx.globalCompositeOperation = layer.blendMode;
-        tempCtx.drawImage(layer.canvas, 0, 0);
+        tCtx.globalAlpha = layer.opacity;
+        tCtx.globalCompositeOperation = layer.blendMode;
+        tCtx.drawImage(layer.canvas, 0, 0);
     }
+
+    return tempCanvas.toDataURL(format, quality);
+}
+
+// --- PawMage export (custom format) ---
+export function exportPawMage(filename = 'kitty-export.pawm') {
+    showStatus('🐱 Generating PawMage...');
+
+    const layers = getLayers();
+    const { width, height } = getCanvasSize();
+    const tempCanvas = document.createElement('canvas');
+    tempCanvas.width = width;
+    tempCanvas.height = height;
+    const tCtx = tempCanvas.getContext('2d');
+
+    // Composite all layers
+    for (const layer of layers) {
+        if (!layer.visible) continue;
+        tCtx.globalAlpha = layer.opacity;
+        tCtx.globalCompositeOperation = layer.blendMode;
+        tCtx.drawImage(layer.canvas, 0, 0);
+    }
+
+    // Get pixel data
+    const imageData = tCtx.getImageData(0, 0, width, height);
+    const data = imageData.data;
+
+    // Build PawMage format
+    // Header: "PAWM" (4 bytes) + width (4) + height (4) + depth (1) + metadata length (4)
+    const magic = new TextEncoder().encode('PAWM');
+    const wBytes = new Uint32Array([width]);
+    const hBytes = new Uint32Array([height]);
+    const depth = 32; // RGBA
+    const meta = JSON.stringify({
+        author: 'KittyCreate Studio',
+        timestamp: new Date().toISOString(),
+        layers: layers.length,
+        software: 'KittyCreate Studio v1'
+    });
+    const metaBytes = new TextEncoder().encode(meta);
+    const metaLen = new Uint32Array([metaBytes.length]);
+
+    // RLE compress pixel data
+    const compressed = rleCompress(data);
+
+    // Build file
+    const header = new Uint8Array(4 + 4 + 4 + 1 + 4);
+    header.set(magic, 0);
+    header.set(new Uint8Array(wBytes.buffer), 4);
+    header.set(new Uint8Array(hBytes.buffer), 8);
+    header[12] = depth;
+    header.set(new Uint8Array(metaLen.buffer), 13);
+
+    const final = new Uint8Array(
+        header.length + metaBytes.length + compressed.length
+    );
+    let offset = 0;
+    final.set(header, offset);
+    offset += header.length;
+    final.set(metaBytes, offset);
+    offset += metaBytes.length;
+    final.set(compressed, offset);
 
     // Download
+    const blob = new Blob([final], { type: 'application/octet-stream' });
     const link = document.createElement('a');
     link.download = filename;
-    link.href = tempCanvas.toDataURL('image/jpeg', quality);
+    link.href = URL.createObjectURL(blob);
     link.click();
 
-    updateStatus('📤 Exported JPG');
+    showStatus('🐱 PawMage exported!');
 }
 
-// --- Export GIF (using frames) ---
-export function exportGIF(filename = 'kitty-animation.gif', delay = 100) {
-    // Check if we have animation module loaded
-    const frames = getFrames ? getFrames() : null;
-    if (!frames || frames.length < 2) {
-        alert('No animation frames found. Add at least 2 frames.');
-        return;
+// --- RLE Compression ---
+function rleCompress(data) {
+    const output = [];
+    let i = 0;
+    while (i < data.length) {
+        let runLength = 1;
+        while (i + runLength < data.length &&
+               data[i + runLength] === data[i] &&
+               runLength < 255) {
+            runLength++;
+        }
+        output.push(runLength);
+        output.push(data[i]);
+        i += runLength;
     }
-
-    // For now, we'll use a simple GIF export with a library
-    // This is a placeholder that will use the frames array
-    console.log('🎞️ Exporting GIF with', frames.length, 'frames');
-    updateStatus(`🎞️ Exporting ${frames.length}-frame GIF...`);
-
-    // In a real implementation, we'd use gif.js or similar
-    // For now, we'll inform the user
-    alert(
-        'GIF export will be available when we integrate a library.\n' +
-        `Frames: ${frames.length}\n` +
-        'Coming soon!'
-    );
-
-    // Placeholder download
-    // For actual GIF export, you'd use:
-    // 1. Include gif.js library
-    // 2. Create GIF instance with frames
-    // 3. Render and download
-}
-
-// --- Export as PawMage (custom format) ---
-export function exportPawMage(filename = 'kitty-export.pawm') {
-    // Placeholder for PawMage support (v1.5 feature)
-    alert('🐱 PawMage export coming in v1.5!');
-}
-
-// --- Status update ---
-function updateStatus(message) {
-    const status = document.getElementById('status-tool');
-    if (status) status.textContent = message;
-    setTimeout(() => {
-        if (status) status.textContent = 'Ready';
-    }, 2000);
+    return new Uint8Array(output);
 }
 
 // --- Expose ---
-window.__export = { exportPNG, exportJPG, exportGIF, exportPawMage };
+window.__export = { exportPNG, exportJPG, exportPawMage, compositeLayers };
