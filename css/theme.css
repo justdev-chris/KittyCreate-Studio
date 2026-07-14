@@ -1,0 +1,207 @@
+/* ----------------------------------------------
+   THEME.CSS - Colors & Cat Styling
+   KittyCreate Studio v1
+   ---------------------------------------------- */
+
+:root {
+    /* ----- BASE ----- */
+    --bg: #1a1a1a;
+    --surface: #252525;
+    --surface-light: #2d2d2d;
+    --border-color: #3a3a3a;
+
+    /* ----- TEXT ----- */
+    --text: #f0ece6;
+    --text-dim: #a8a09a;
+    --text-bright: #ffffff;
+
+    /* ----- ACCENT (Cat Orange) ----- */
+    --accent: #f57c00;
+    --accent-bg: rgba(245, 124, 0, 0.15);
+    --accent-hover: #e07000;
+
+    /* ----- INTERACTIVE ----- */
+    --hover-bg: #333333;
+    --button-bg: #2d2d2d;
+    --button-border: #444444;
+
+    /* ----- CANVAS ----- */
+    --canvas-bg: #1e1e1e;
+
+    /* ----- LAYERS ----- */
+    --layer-bg: #2a2a2a;
+    --layer-active-bg: #333333;
+
+    /* ----- STATUS ----- */
+    --status-bg: #1f1f1f;
+
+    /* ----- SCROLLBAR ----- */
+    --scroll-track: #1f1f1f;
+    --scroll-thumb: #444444;
+    --scroll-thumb-hover: #555555;
+
+    /* ----- CAT ELEMENTS ----- */
+    --cat-orange: #f57c00;
+    --cat-cream: #f5e6d3;
+    --cat-whisker: #8a7a6f;
+}
+
+/* ----- BODY ----- */
+body {
+    background: var(--bg);
+    color: var(--text);
+}
+
+/* ----- HEADER ----- */
+#app-header {
+    background: var(--surface);
+    border-bottom-color: var(--border-color);
+}
+
+.logo {
+    color: var(--text-bright);
+}
+
+.logo .cat-icon {
+    color: var(--cat-orange);
+}
+
+.menu button {
+    color: var(--text-dim);
+}
+
+.menu button:hover {
+    background: var(--hover-bg);
+    color: var(--text);
+}
+
+/* ----- TOOLBAR ----- */
+#toolbar {
+    background: var(--surface);
+    border-right-color: var(--border-color);
+}
+
+.tool {
+    color: var(--text-dim);
+}
+
+.tool:hover {
+    background: var(--hover-bg);
+    color: var(--text-bright);
+}
+
+.tool.active {
+    border-color: var(--accent);
+    background: var(--accent-bg);
+    color: var(--accent);
+}
+
+/* ----- CANVAS ----- */
+#canvas-container {
+    background: var(--canvas-bg);
+}
+
+/* ----- LAYERS PANEL ----- */
+#layers-panel {
+    background: var(--surface);
+    border-left-color: var(--border-color);
+}
+
+#layers-panel h4 {
+    color: var(--text-bright);
+}
+
+#layer-list li {
+    background: var(--layer-bg);
+    color: var(--text);
+}
+
+#layer-list li.active {
+    background: var(--layer-active-bg);
+    border-left-color: var(--accent);
+}
+
+#layer-list li .layer-name {
+    flex: 1;
+}
+
+#layer-list li .layer-vis {
+    opacity: 0.6;
+}
+
+#layer-list li .layer-vis:hover {
+    opacity: 1;
+}
+
+.layer-controls button {
+    background: var(--button-bg);
+    color: var(--text);
+    border-color: var(--button-border);
+}
+
+.layer-controls button:hover {
+    background: var(--hover-bg);
+}
+
+.layer-blend select,
+.layer-opacity input {
+    background: var(--button-bg);
+    color: var(--text);
+    border: 1px solid var(--button-border);
+    border-radius: 4px;
+    padding: 2px 4px;
+}
+
+/* ----- TIMELINE ----- */
+#timeline {
+    background: var(--surface);
+    border-top-color: var(--border-color);
+}
+
+.timeline-controls button {
+    background: var(--button-bg);
+    color: var(--text);
+    border-color: var(--button-border);
+}
+
+.timeline-controls button:hover {
+    background: var(--hover-bg);
+}
+
+#frame-counter {
+    color: var(--text-dim);
+}
+
+#frame-strip .frame-thumb {
+    border-color: var(--border-color);
+    background: var(--canvas-bg);
+}
+
+#frame-strip .frame-thumb.active {
+    border-color: var(--accent);
+}
+
+/* ----- STATUS BAR ----- */
+#status-bar {
+    background: var(--status-bg);
+    color: var(--text-dim);
+    border-top-color: var(--border-color);
+}
+
+#status-bar #status-tool {
+    color: var(--accent);
+    font-weight: 600;
+}
+
+#status-autosave {
+    color: #66bb6a;
+}
+
+/* ----- ACCENT OVERRIDES (Cat Orange) ----- */
+.accent-text {
+    color: var(--cat-orange);
+}
+
+.accent-border {
+    border-color: var(--cat-orange);
+}
