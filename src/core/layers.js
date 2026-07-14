@@ -1,5 +1,5 @@
 // ----------------------------------------------
-// LAYERS.JS – Layer stack management
+// LAYERS.JS – Full layer stack management
 // KittyCreate Studio v1
 // ----------------------------------------------
 
@@ -19,11 +19,8 @@ export function initLayers(context, width, height) {
     ctx = context;
     canvasWidth = width;
     canvasHeight = height;
-
-    // Start with one blank layer
-    layers = [createLayer('Layer 1')];
+    layers = [createLayer('Background')];
     activeIndex = 0;
-
     renderLayers();
     updateLayerUI();
 }
@@ -37,7 +34,6 @@ function createLayer(name) {
     const c = canvas.getContext('2d');
     c.fillStyle = 'rgba(0,0,0,0)';
     c.fillRect(0, 0, canvasWidth, canvasHeight);
-
     return {
         id,
         name: name || `Layer ${id}`,
@@ -49,17 +45,20 @@ function createLayer(name) {
     };
 }
 
-// --- Get / Set ---
+// --- Getters ---
 export function getLayers() { return layers; }
 export function getActiveLayer() { return layers[activeIndex] || null; }
 export function getActiveIndex() { return activeIndex; }
 export function getLayerCount() { return layers.length; }
 
+// --- Set active ---
 export function setActiveIndex(index) {
     if (index >= 0 && index < layers.length) {
         activeIndex = index;
         updateLayerUI();
         renderLayers();
+        // Sync UI controls
+        syncLayerUI();
     }
 }
 
@@ -70,6 +69,7 @@ export function addLayer(name) {
     activeIndex = layers.length - 1;
     updateLayerUI();
     renderLayers();
+    syncLayerUI();
     pushState(ctx, canvasWidth, canvasHeight);
     return layer;
 }
@@ -85,6 +85,7 @@ export function deleteLayer(index) {
     if (activeIndex === index && index > 0) activeIndex--;
     updateLayerUI();
     renderLayers();
+    syncLayerUI();
     pushState(ctx, canvasWidth, canvasHeight);
 }
 
@@ -101,6 +102,7 @@ export function duplicateLayer(index) {
     activeIndex = layers.length - 1;
     updateLayerUI();
     renderLayers();
+    syncLayerUI();
     pushState(ctx, canvasWidth, canvasHeight);
 }
 
@@ -134,32 +136,36 @@ export function toggleLayerVisibility(index) {
     renderLayers();
 }
 
-// --- Opacity / Blend ---
+// --- Opacity ---
 export function setLayerOpacity(index, opacity) {
     if (index === undefined) index = activeIndex;
     if (index < 0 || index >= layers.length) return;
     layers[index].opacity = Math.max(0, Math.min(1, opacity));
     updateLayerUI();
     renderLayers();
+    syncLayerUI();
 }
 
+// --- Blend mode ---
 export function setLayerBlendMode(index, mode) {
     if (index === undefined) index = activeIndex;
     if (index < 0 || index >= layers.length) return;
     layers[index].blendMode = mode;
     updateLayerUI();
     renderLayers();
+    syncLayerUI();
 }
 
-// --- Rendering ---
+// --- Render ---
 export function renderLayers() {
     if (!ctx) return;
 
-    // Clear with white
+    const dpr = window.devicePixelRatio || 1;
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
+    ctx.scale(dpr, dpr);
     ctx.fillStyle = '#ffffff';
     ctx.fillRect(0, 0, canvasWidth, canvasHeight);
 
-    // Draw each visible layer
     for (const layer of layers) {
         if (!layer.visible) continue;
         ctx.globalAlpha = layer.opacity;
@@ -167,7 +173,6 @@ export function renderLayers() {
         ctx.drawImage(layer.canvas, 0, 0);
     }
 
-    // Reset
     ctx.globalAlpha = 1;
     ctx.globalCompositeOperation = 'source-over';
 }
@@ -190,7 +195,7 @@ export function setLayerImageData(index, imageData) {
     renderLayers();
 }
 
-// --- Clear layer ---
+// --- Clear ---
 export function clearLayer(index) {
     if (index === undefined) index = activeIndex;
     if (index < 0 || index >= layers.length) return;
@@ -201,13 +206,24 @@ export function clearLayer(index) {
     pushState(ctx, canvasWidth, canvasHeight);
 }
 
+// --- Sync UI controls ---
+function syncLayerUI() {
+    const active = getActiveLayer();
+    const opacitySlider = document.getElementById('layer-opacity');
+    const blendSelect = document.getElementById('blend-mode');
+
+    if (active) {
+        if (opacitySlider) opacitySlider.value = active.opacity * 100;
+        if (blendSelect) blendSelect.value = active.blendMode;
+    }
+}
+
 // --- UI Update ---
 export function updateLayerUI() {
     const list = document.getElementById('layer-list');
     if (!list) return;
 
     list.innerHTML = '';
-    // Show top layers first (reversed)
     for (let i = layers.length - 1; i >= 0; i--) {
         const layer = layers[i];
         const li = document.createElement('li');
@@ -240,19 +256,10 @@ export function updateLayerUI() {
         list.appendChild(li);
     }
 
-    // Update opacity slider
-    const active = getActiveLayer();
-    const opacitySlider = document.getElementById('layer-opacity');
-    const blendSelect = document.getElementById('blend-mode');
-    if (active && opacitySlider) {
-        opacitySlider.value = active.opacity * 100;
-    }
-    if (active && blendSelect) {
-        blendSelect.value = active.blendMode;
-    }
+    syncLayerUI();
 }
 
-// --- Resize layers ---
+// --- Resize ---
 export function resizeLayers(newWidth, newHeight) {
     canvasWidth = newWidth;
     canvasHeight = newHeight;
@@ -266,7 +273,6 @@ export function resizeLayers(newWidth, newHeight) {
         newCanvas.height = newHeight;
         const newCtx = newCanvas.getContext('2d');
         newCtx.putImageData(imageData, 0, 0);
-
         layer.canvas = newCanvas;
     }
     renderLayers();
