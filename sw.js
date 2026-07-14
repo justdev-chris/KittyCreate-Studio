@@ -1,38 +1,48 @@
 // ----------------------------------------------
-// SW.JS – Service Worker for PWA
-// KittyCreate Studio v1 (GitHub Pages)
+// SW.JS – Service Worker for KittyCreate Studio
+// Fully dynamic – works in any repo subfolder
 // ----------------------------------------------
 
 const CACHE_NAME = 'kittycreate-v1';
-const REPO_PATH = '/KittyCreate-Studio/';
 
+// ----- Auto-detect base path -----
+const getBasePath = () => {
+    const swPath = self.location.pathname;
+    // swPath = /KittyCreate-Studio/sw.js or /sw.js
+    const base = swPath.substring(0, swPath.lastIndexOf('/') + 1);
+    return base || '/';
+};
+
+const BASE = getBasePath();
+
+// ----- All assets (relative to BASE) -----
 const ASSETS = [
-    REPO_PATH,
-    REPO_PATH + 'index.html',
-    REPO_PATH + 'manifest.json',
-    REPO_PATH + 'css/main.css',
-    REPO_PATH + 'css/theme.css',
-    REPO_PATH + 'src/core/app.js',
-    REPO_PATH + 'src/core/canvas.js',
-    REPO_PATH + 'src/core/layers.js',
-    REPO_PATH + 'src/core/history.js',
-    REPO_PATH + 'src/tools/tools.js',
-    REPO_PATH + 'src/tools/brushEngine.js',
-    REPO_PATH + 'src/tools/selections.js',
-    REPO_PATH + 'src/tools/text.js',
-    REPO_PATH + 'src/filters/filters.js',
-    REPO_PATH + 'src/animation/animation.js',
-    REPO_PATH + 'src/io/export.js',
-    REPO_PATH + 'src/io/autosave.js',
-    REPO_PATH + 'src/utils/utils.js',
+    BASE,
+    BASE + 'index.html',
+    BASE + 'manifest.json',
+    BASE + 'css/main.css',
+    BASE + 'css/theme.css',
+    BASE + 'src/core/app.js',
+    BASE + 'src/core/canvas.js',
+    BASE + 'src/core/layers.js',
+    BASE + 'src/core/history.js',
+    BASE + 'src/tools/tools.js',
+    BASE + 'src/tools/brushEngine.js',
+    BASE + 'src/tools/selections.js',
+    BASE + 'src/tools/text.js',
+    BASE + 'src/filters/filters.js',
+    BASE + 'src/animation/animation.js',
+    BASE + 'src/io/export.js',
+    BASE + 'src/io/autosave.js',
+    BASE + 'src/utils/utils.js',
 ];
 
-// ----- Install -----
+// ----- Install: Cache all assets -----
 self.addEventListener('install', (event) => {
     event.waitUntil(
         caches.open(CACHE_NAME)
             .then((cache) => {
-                console.log('🐱 KittyCreate Studio: Caching assets...');
+                console.log('🐱 KittyCreate: Caching ' + ASSETS.length + ' assets...');
                 return cache.addAll(ASSETS);
             })
             .then(() => self.skipWaiting())
@@ -40,7 +50,7 @@ self.addEventListener('install', (event) => {
     );
 });
 
-// ----- Activate -----
+// ----- Activate: Clean old caches -----
 self.addEventListener('activate', (event) => {
     event.waitUntil(
         caches.keys().then((cacheNames) => {
@@ -56,20 +66,19 @@ self.addEventListener('activate', (event) => {
     );
 });
 
-// ----- Fetch -----
+// ----- Fetch: Cache-first with network fallback -----
 self.addEventListener('fetch', (event) => {
     const url = new URL(event.request.url);
 
-    // Skip cross-origin and non-GET requests
+    // Skip cross-origin and non-GET
     if (event.request.method !== 'GET' ||
         !event.request.url.startsWith(self.location.origin)) {
         return;
     }
 
-    // Check if request is for our repo path
-    if (!url.pathname.startsWith(REPO_PATH)) {
-        // Still try to serve, but don't cache aggressively
-        return fetch(event.request);
+    // Skip Chrome extensions and devtools
+    if (url.pathname.startsWith('/__') || url.pathname.includes('chrome-extension')) {
+        return;
     }
 
     event.respondWith(
@@ -99,9 +108,11 @@ self.addEventListener('fetch', (event) => {
                         return response;
                     })
                     .catch(() => {
-                        // Offline fallback for HTML
-                        if (url.pathname === REPO_PATH || url.pathname === REPO_PATH + 'index.html') {
-                            return caches.match(REPO_PATH + 'index.html');
+                        // Offline fallback
+                        if (url.pathname.endsWith('.html') ||
+                            url.pathname === BASE ||
+                            url.pathname === BASE + 'index.html') {
+                            return caches.match(BASE + 'index.html');
                         }
                         return new Response(
                             '🐱 KittyCreate Studio is offline. Please reconnect.',
@@ -112,11 +123,11 @@ self.addEventListener('fetch', (event) => {
     );
 });
 
-// ----- Message -----
+// ----- Message: Skip waiting -----
 self.addEventListener('message', (event) => {
     if (event.data && event.data.type === 'SKIP_WAITING') {
         self.skipWaiting();
     }
 });
 
-console.log('🐱 KittyCreate Studio Service Worker loaded (repo: ' + REPO_PATH + ')');
+console.log('🐱 KittyCreate Studio SW loaded (base: ' + BASE + ')');
