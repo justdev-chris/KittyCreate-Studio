@@ -1,20 +1,22 @@
 // ----------------------------------------------
-// HISTORY.JS – Undo/Redo system
+// HISTORY.JS – Full Undo/Redo system
 // KittyCreate Studio v1
 // ----------------------------------------------
 
-import { getLayers, renderLayers, getActiveIndex } from './layers.js';
+import { getLayers, getActiveIndex, renderLayers } from './layers.js';
+import { getCanvasSize } from './canvas.js';
 
 // --- State ---
 let history = [];
 let currentIndex = -1;
-let maxHistory = 30;
+let maxHistory = 50;
 let isRestoring = false;
 
 // --- Init ---
 export function initHistory() {
     history = [];
     currentIndex = -1;
+    updateUndoUI();
 }
 
 // --- Push ---
@@ -26,18 +28,15 @@ export function pushState(ctx, width, height) {
         history = history.slice(0, currentIndex + 1);
     }
 
-    // Capture state
     const snapshot = captureState(ctx, width, height);
     history.push(snapshot);
     currentIndex++;
 
-    // Limit history
     if (history.length > maxHistory) {
         history.shift();
         currentIndex--;
     }
 
-    // Update UI
     updateUndoUI();
 }
 
@@ -48,7 +47,6 @@ function captureState(ctx, width, height) {
         const c = layer.canvas.getContext('2d');
         return c.getImageData(0, 0, width, height);
     });
-
     return {
         layerData,
         activeIndex: getActiveIndex(),
@@ -66,18 +64,27 @@ function restoreState(ctx, index) {
     const state = history[index];
     const layers = getLayers();
 
-    // Restore each layer
+    // Ensure we have enough layers
+    while (layers.length < state.layerData.length) {
+        const newLayer = createLayerFromCanvas(state.width, state.height);
+        layers.push(newLayer);
+    }
+
     for (let i = 0; i < Math.min(layers.length, state.layerData.length); i++) {
         const c = layers[i].canvas.getContext('2d');
         c.putImageData(state.layerData[i], 0, 0);
     }
 
-    // If layer count changed, handle it
-    if (state.layerData.length > layers.length) {
-        // Add missing layers (shouldn't happen often)
-        for (let i = layers.length; i < state.layerData.length; i++) {
-            // Will be handled by layers.js
-        }
+    // Trim extra layers
+    while (layers.length > state.layerData.length) {
+        layers.pop();
+    }
+
+    // Restore active index
+    if (state.activeIndex !== undefined && state.activeIndex < layers.length) {
+        // Update active index via layers module
+        const { setActiveIndex } = require('./layers.js');
+        setActiveIndex(state.activeIndex);
     }
 
     currentIndex = index;
@@ -86,10 +93,22 @@ function restoreState(ctx, index) {
     updateUndoUI();
 }
 
+// --- Helper ---
+function createLayerFromCanvas(width, height) {
+    const canvas = document.createElement('canvas');
+    canvas.width = width;
+    canvas.height = height;
+    const c = canvas.getContext('2d');
+    c.fillStyle = 'rgba(0,0,0,0)';
+    c.fillRect(0, 0, width, height);
+    return { canvas };
+}
+
 // --- Undo ---
 export function undo() {
     if (currentIndex <= 0) return;
-    const ctx = document.getElementById('main-canvas')?.getContext('2d');
+    const { getCanvasContext } = require('./canvas.js');
+    const ctx = getCanvasContext();
     if (!ctx) return;
     restoreState(ctx, currentIndex - 1);
 }
@@ -97,7 +116,8 @@ export function undo() {
 // --- Redo ---
 export function redo() {
     if (currentIndex >= history.length - 1) return;
-    const ctx = document.getElementById('main-canvas')?.getContext('2d');
+    const { getCanvasContext } = require('./canvas.js');
+    const ctx = getCanvasContext();
     if (!ctx) return;
     restoreState(ctx, currentIndex + 1);
 }
@@ -109,18 +129,24 @@ export function clearHistory() {
     updateUndoUI();
 }
 
-// --- UI ---
-function updateUndoUI() {
-    // Could add buttons to enable/disable undo/redo
-    // For now, just log
-    // console.log(`History: ${currentIndex + 1}/${history.length}`);
-}
-
 // --- Getters ---
 export function canUndo() { return currentIndex > 0; }
 export function canRedo() { return currentIndex < history.length - 1; }
 export function getHistorySize() { return history.length; }
 export function getCurrentIndex() { return currentIndex; }
 
+// --- UI ---
+function updateUndoUI() {
+    const undoBtn = document.getElementById('menu-edit-undo');
+    const redoBtn = document.getElementById('menu-edit-redo');
+    if (undoBtn) undoBtn.disabled = !canUndo();
+    if (redoBtn) redoBtn.disabled = !canRedo();
+
+    const status = document.getElementById('status-tool');
+    if (status && history.length > 0) {
+        // Don't override status, just update internally
+    }
+}
+
 // --- Expose ---
-window.__history = { history, currentIndex, undo, redo, clearHistory };
+window.__history = { history, currentIndex, undo, redo, clearHistory, canUndo, canRedo };
