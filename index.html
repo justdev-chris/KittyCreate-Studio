@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>KittyCreate Studio</title>
+    <link rel="manifest" href="manifest.json" />
+    <link rel="stylesheet" href="css/main.css" />
+    <link rel="stylesheet" href="css/theme.css" />
+</head>
+<body>
+
+    <!-- Top Bar -->
+    <header id="app-header">
+        <div class="logo">🐱 KittyCreate Studio</div>
+        <div class="menu">
+            <button id="menu-file">File</button>
+            <button id="menu-edit">Edit</button>
+            <button id="menu-view">View</button>
+            <button id="menu-help">Help</button>
+        </div>
+    </header>
+
+    <!-- Main Layout -->
+    <div id="app-body">
+
+        <!-- Left: Toolbar -->
+        <aside id="toolbar">
+            <button class="tool" data-tool="pounce" title="Brush">🖊️</button>
+            <button class="tool" data-tool="scratch" title="Pencil">✏️</button>
+            <button class="tool" data-tool="purr" title="Airbrush">💨</button>
+            <button class="tool" data-tool="lick" title="Eraser">🧹</button>
+            <button class="tool" data-tool="nip" title="Fill">🪣</button>
+            <button class="tool" data-tool="claw" title="Selection">🔲</button>
+            <button class="tool" data-tool="pelt" title="Tone">⚫</button>
+            <button class="tool" data-tool="whisper" title="Text">🔤</button>
+            <button class="tool" data-tool="mirror" title="Symmetry">🪞</button>
+            <button class="tool" data-tool="flick" title="Animation">🎞️</button>
+        </aside>
+
+        <!-- Center: Canvas -->
+        <main id="canvas-container">
+            <canvas id="main-canvas"></canvas>
+        </main>
+
+        <!-- Right: Layers Panel -->
+        <aside id="layers-panel">
+            <h4>Layers</h4>
+            <ul id="layer-list"></ul>
+            <div class="layer-controls">
+                <button id="layer-add">+ Add</button>
+                <button id="layer-delete">− Delete</button>
+                <button id="layer-up">↑</button>
+                <button id="layer-down">↓</button>
+            </div>
+            <div class="layer-blend">
+                <label>Blend:</label>
+                <select id="blend-mode">
+                    <option value="normal">Normal</option>
+                    <option value="multiply">Multiply</option>
+                    <option value="screen">Screen</option>
+                    <option value="overlay">Overlay</option>
+                </select>
+            </div>
+            <div class="layer-opacity">
+                <label>Opacity:</label>
+                <input type="range" id="layer-opacity" min="0" max="100" value="100" />
+            </div>
+        </aside>
+
+    </div>
+
+    <!-- Bottom: Timeline (animation) -->
+    <footer id="timeline">
+        <div class="timeline-controls">
+            <button id="frame-add">+ Frame</button>
+            <button id="frame-duplicate">📋 Duplicate</button>
+            <button id="frame-delete">− Delete</button>
+            <button id="frame-prev">⏪</button>
+            <button id="frame-next">⏩</button>
+            <button id="frame-play">▶️ Play</button>
+            <span id="frame-counter">Frame 1 / 1</span>
+        </div>
+        <div id="frame-strip"></div>
+    </footer>
+
+    <!-- Status Bar -->
+    <div id="status-bar">
+        <span id="status-tool">Tool: Pounce</span>
+        <span id="status-pos">X: 0 Y: 0</span>
+        <span id="status-zoom">Zoom: 100%</span>
+        <span id="status-autosave">💾 Auto-saved</span>
+    </div>
+
+    <!-- Scripts -->
+    <script type="module" src="src/core/app.js"></script>
+
+</body>
+</html>
