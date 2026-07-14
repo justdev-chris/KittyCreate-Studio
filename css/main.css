@@ -1,0 +1,284 @@
+/* ----------------------------------------------
+   MAIN.CSS - Layout & Structure
+   KittyCreate Studio v1
+   ---------------------------------------------- */
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+html, body {
+    height: 100%;
+    font-family: 'Segoe UI', system-ui, sans-serif;
+    overflow: hidden;
+    user-select: none;
+}
+
+/* ----- APP SHELL ----- */
+#app-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 8px 16px;
+    height: 48px;
+    border-bottom: 2px solid var(--border-color);
+    flex-shrink: 0;
+}
+
+.logo {
+    font-size: 18px;
+    font-weight: 700;
+}
+
+.menu button {
+    background: none;
+    border: none;
+    padding: 6px 12px;
+    cursor: pointer;
+    font-size: 13px;
+    border-radius: 4px;
+}
+
+.menu button:hover {
+    background: var(--hover-bg);
+}
+
+/* ----- BODY LAYOUT ----- */
+#app-body {
+    display: flex;
+    height: calc(100vh - 48px - 120px - 28px);
+    /* header + timeline + status */
+    overflow: hidden;
+}
+
+/* ----- TOOLBAR (left) ----- */
+#toolbar {
+    width: 60px;
+    padding: 8px 4px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    border-right: 2px solid var(--border-color);
+    flex-shrink: 0;
+    overflow-y: auto;
+}
+
+.tool {
+    width: 44px;
+    height: 44px;
+    font-size: 20px;
+    border: 2px solid transparent;
+    border-radius: 8px;
+    background: transparent;
+    cursor: pointer;
+    transition: 0.15s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.tool:hover {
+    background: var(--hover-bg);
+}
+
+.tool.active {
+    border-color: var(--accent);
+    background: var(--accent-bg);
+}
+
+/* ----- CANVAS (center) ----- */
+#canvas-container {
+    flex: 1;
+    overflow: hidden;
+    position: relative;
+    background: var(--canvas-bg);
+}
+
+#main-canvas {
+    display: block;
+    width: 100%;
+    height: 100%;
+    cursor: crosshair;
+    background: white;
+}
+
+/* ----- LAYERS PANEL (right) ----- */
+#layers-panel {
+    width: 220px;
+    padding: 10px 12px;
+    border-left: 2px solid var(--border-color);
+    flex-shrink: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    overflow-y: auto;
+}
+
+#layers-panel h4 {
+    font-weight: 600;
+    font-size: 14px;
+    margin-bottom: 4px;
+}
+
+#layer-list {
+    list-style: none;
+    flex: 1;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+#layer-list li {
+    padding: 6px 8px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 13px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: var(--layer-bg);
+    border-left: 3px solid transparent;
+}
+
+#layer-list li.active {
+    border-left-color: var(--accent);
+    background: var(--layer-active-bg);
+}
+
+#layer-list li .layer-vis {
+    cursor: pointer;
+    margin-right: 8px;
+}
+
+.layer-controls {
+    display: flex;
+    gap: 4px;
+    flex-wrap: wrap;
+}
+
+.layer-controls button {
+    padding: 4px 10px;
+    font-size: 12px;
+    border: 1px solid var(--border-color);
+    border-radius: 4px;
+    background: var(--button-bg);
+    cursor: pointer;
+}
+
+.layer-controls button:hover {
+    background: var(--hover-bg);
+}
+
+.layer-blend,
+.layer-opacity {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 13px;
+}
+
+.layer-blend select,
+.layer-opacity input {
+    flex: 1;
+}
+
+/* ----- TIMELINE (bottom) ----- */
+#timeline {
+    height: 120px;
+    border-top: 2px solid var(--border-color);
+    padding: 8px 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    flex-shrink: 0;
+}
+
+.timeline-controls {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    flex-wrap: wrap;
+}
+
+.timeline-controls button {
+    padding: 4px 10px;
+    font-size: 12px;
+    border: 1px solid var(--border-color);
+    border-radius: 4px;
+    background: var(--button-bg);
+    cursor: pointer;
+}
+
+.timeline-controls button:hover {
+    background: var(--hover-bg);
+}
+
+#frame-counter {
+    font-size: 13px;
+    margin-left: 8px;
+}
+
+#frame-strip {
+    flex: 1;
+    display: flex;
+    gap: 4px;
+    overflow-x: auto;
+    padding: 4px 0;
+}
+
+#frame-strip .frame-thumb {
+    width: 60px;
+    height: 60px;
+    border: 2px solid var(--border-color);
+    border-radius: 4px;
+    flex-shrink: 0;
+    background: white;
+    cursor: pointer;
+    transition: 0.1s;
+}
+
+#frame-strip .frame-thumb.active {
+    border-color: var(--accent);
+}
+
+/* ----- STATUS BAR ----- */
+#status-bar {
+    height: 28px;
+    padding: 0 16px;
+    display: flex;
+    align-items: center;
+    gap: 20px;
+    font-size: 12px;
+    border-top: 1px solid var(--border-color);
+    flex-shrink: 0;
+    background: var(--status-bg);
+}
+
+#status-bar span {
+    opacity: 0.8;
+}
+
+#status-autosave {
+    margin-left: auto;
+    font-style: italic;
+}
+
+/* ----- SCROLLBAR ----- */
+::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+}
+::-webkit-scrollbar-track {
+    background: var(--scroll-track);
+}
+::-webkit-scrollbar-thumb {
+    background: var(--scroll-thumb);
+    border-radius: 3px;
+}
+::-webkit-scrollbar-thumb:hover {
+    background: var(--scroll-thumb-hover);
+}
