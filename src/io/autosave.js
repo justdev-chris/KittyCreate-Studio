@@ -1,43 +1,38 @@
 // ----------------------------------------------
-// AUTOSAVE.JS – Auto-save to localStorage
+// AUTOSAVE.JS – Full autosave with UI state restore
 // KittyCreate Studio v1
 // ----------------------------------------------
 
-import { getLayers, getActiveIndex, getLayerCount } from '../core/layers.js';
-import { getCanvasSize } from '../core/canvas.js';
+import { getLayers, getActiveIndex, getLayerCount, renderLayers, updateLayerUI, setActiveIndex } from '../core/layers.js';
+import { getCanvasSize, getZoom, getPan, setZoom, setPan } from '../core/canvas.js';
+import { getActiveTool, setActiveTool } from '../tools/tools.js';
+import { goToFrame, getCurrentFrameIndex } from '../animation/animation.js';
+import { showStatus } from '../utils/utils.js';
 
-// --- State ---
 let autosaveInterval = null;
-let intervalMs = 15000; // 15 seconds
+let intervalMs = 15000;
 let onSaveCallback = null;
 let isEnabled = true;
 
-// --- Init ---
 export function initAutosave(callback) {
     onSaveCallback = callback || (() => {});
 
-    // Load saved state on init
-    loadState();
+    // Load state on init
+    const loaded = loadState();
+    if (loaded) {
+        showStatus('📂 Auto-saved project restored');
+    }
 
-    // Start autosave interval
     startAutosave();
 
-    // Save on page close
-    window.addEventListener('beforeunload', () => {
-        saveState();
-    });
-
-    // Save on visibility change (user leaves tab)
+    window.addEventListener('beforeunload', () => saveState());
     document.addEventListener('visibilitychange', () => {
-        if (document.hidden) {
-            saveState();
-        }
+        if (document.hidden) saveState();
     });
 
     console.log('💾 Autosave initialized (every', intervalMs / 1000, 's)');
 }
 
-// --- Start autosave ---
 export function startAutosave() {
     if (autosaveInterval) clearInterval(autosaveInterval);
     autosaveInterval = setInterval(() => {
@@ -48,7 +43,6 @@ export function startAutosave() {
     }, intervalMs);
 }
 
-// --- Stop autosave ---
 export function stopAutosave() {
     if (autosaveInterval) {
         clearInterval(autosaveInterval);
@@ -56,32 +50,27 @@ export function stopAutosave() {
     }
 }
 
-// --- Set interval ---
 export function setAutosaveInterval(ms) {
     intervalMs = Math.max(1000, ms);
-    if (autosaveInterval) {
-        startAutosave(); // Restart with new interval
-    }
+    if (autosaveInterval) startAutosave();
 }
 
-// --- Enable/disable ---
 export function toggleAutosave(enabled) {
     isEnabled = enabled !== undefined ? enabled : !isEnabled;
-    if (!isEnabled) {
-        stopAutosave();
-    } else {
-        startAutosave();
-    }
+    if (!isEnabled) stopAutosave();
+    else startAutosave();
     return isEnabled;
 }
 
-// --- Save state ---
+// --- Save ---
 export function saveState() {
     try {
         const layers = getLayers();
         const { width, height } = getCanvasSize();
+        const zoom = getZoom();
+        const pan = getPan();
+        const activeTool = getActiveTool ? getActiveTool() : 'pounce';
 
-        // Serialize layer data to base64
         const layerData = layers.map(layer => {
             const c = layer.canvas.getContext('2d');
             const imageData = c.getImageData(0, 0, width, height);
@@ -103,18 +92,21 @@ export function saveState() {
             width,
             height,
             activeIndex: getActiveIndex(),
+            activeTool: activeTool,
+            zoom: zoom,
+            panX: pan.x || 0,
+            panY: pan.y || 0,
             layers: layerData,
+            frameIndex: getCurrentFrameIndex ? getCurrentFrameIndex() : 0,
         };
 
         localStorage.setItem('kittycreate_state', JSON.stringify(state));
-        console.log('💾 Autosaved at', new Date().toLocaleTimeString());
-
     } catch (error) {
         console.warn('❌ Autosave failed:', error);
     }
 }
 
-// --- Load state ---
+// --- Load ---
 export function loadState() {
     try {
         const raw = localStorage.getItem('kittycreate_state');
@@ -123,25 +115,19 @@ export function loadState() {
         const state = JSON.parse(raw);
         if (!state.layers || state.layers.length === 0) return false;
 
-        console.log('📂 Loading saved state from', new Date(state.timestamp).toLocaleTimeString());
-
-        // Restore layers
         const { width, height } = getCanvasSize();
         const layers = getLayers();
 
         // Clear existing layers
-        while (layers.length > 0) {
-            layers.pop();
-        }
+        while (layers.length > 0) layers.pop();
 
-        // Restore each layer
+        // Restore layers
         for (const layerData of state.layers) {
             const canvas = document.createElement('canvas');
             canvas.width = width;
             canvas.height = height;
             const c = canvas.getContext('2d');
 
-            // Restore image data
             const imageData = new ImageData(
                 new Uint8ClampedArray(layerData.data),
                 width,
@@ -149,32 +135,56 @@ export function loadState() {
             );
             c.putImageData(imageData, 0, 0);
 
-            // Create layer
-            const layer = {
+            layers.push({
                 canvas,
                 name: layerData.name || 'Layer',
                 visible: layerData.visible !== undefined ? layerData.visible : true,
                 opacity: layerData.opacity || 1,
                 blendMode: layerData.blendMode || 'normal',
                 locked: layerData.locked || false,
-            };
-
-            layers.push(layer);
+            });
         }
 
         // Restore active index
         if (state.activeIndex !== undefined && state.activeIndex < layers.length) {
-            // We'll need to set this via layers module
-            // For now, we'll rely on the UI to update
+            setActiveIndex(state.activeIndex);
         }
 
-        // Trigger render
-        const renderLayers = window.__layers?.renderLayers;
-        if (renderLayers) renderLayers();
+        // Restore zoom and pan
+        if (state.zoom !== undefined) {
+            setZoom(state.zoom);
+        }
+        if (state.panX !== undefined && state.panY !== undefined) {
+            setPan(state.panX, state.panY);
+        }
 
-        // Update UI
-        const updateUI = window.__layers?.updateLayerUI;
-        if (updateUI) updateUI();
+        // Restore tool
+        if (state.activeTool && setActiveTool) {
+            setActiveTool(state.activeTool);
+            // Update UI
+            const toolButtons = document.querySelectorAll('.tool');
+            toolButtons.forEach(btn => {
+                btn.classList.toggle('active', btn.dataset.tool === state.activeTool);
+            });
+            const statusTool = document.getElementById('status-tool');
+            if (statusTool) {
+                statusTool.textContent = `Tool: ${state.activeTool.charAt(0).toUpperCase() + state.activeTool.slice(1)}`;
+            }
+        }
+
+        // Restore frame
+        if (state.frameIndex !== undefined && goToFrame) {
+            goToFrame(state.frameIndex);
+        }
+
+        renderLayers();
+        updateLayerUI();
+
+        // Update zoom status
+        const statusZoom = document.getElementById('status-zoom');
+        if (statusZoom && state.zoom !== undefined) {
+            statusZoom.textContent = `Zoom: ${Math.round(state.zoom * 100)}%`;
+        }
 
         return true;
 
@@ -184,10 +194,9 @@ export function loadState() {
     }
 }
 
-// --- Clear saved state ---
 export function clearSavedState() {
     localStorage.removeItem('kittycreate_state');
-    console.log('🧹 Cleared saved state');
+    showStatus('🧹 Cleared saved state');
 }
 
 // --- Expose ---
@@ -196,5 +205,5 @@ window.__autosave = {
     loadState,
     clearSavedState,
     toggleAutosave,
-    setAutosaveInterval,
+    setAutosaveInterval
 };
