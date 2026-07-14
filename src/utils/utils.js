@@ -1,9 +1,9 @@
 // ----------------------------------------------
-// UTILS.JS – Helper functions
+// UTILS.JS – Full helper functions
 // KittyCreate Studio v1
 // ----------------------------------------------
 
-// --- DOM helpers ---
+// --- DOM ---
 export function $(selector, context = document) {
     return context.querySelector(selector);
 }
@@ -21,7 +21,7 @@ export function createEl(tag, className = '', attributes = {}) {
     return el;
 }
 
-// --- Color helpers ---
+// --- Color ---
 export function hexToRgb(hex) {
     const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
     return result ? {
@@ -63,21 +63,21 @@ export function hslToRgb(h, s, l) {
         const hue2rgb = (p, q, t) => {
             if (t < 0) t += 1;
             if (t > 1) t -= 1;
-            if (t < 1 / 6) return p + (q - p) * 6 * t;
-            if (t < 1 / 2) return q;
-            if (t < 2 / 3) return p + (q - p) * (2 / 3 - t) * 6;
+            if (t < 1/6) return p + (q - p) * 6 * t;
+            if (t < 1/2) return q;
+            if (t < 2/3) return p + (q - p) * (2/3 - t) * 6;
             return p;
         };
         const q = l < 0.5 ? l * (1 + s) : l + s - l * s;
         const p = 2 * l - q;
-        r = hue2rgb(p, q, h + 1 / 3);
+        r = hue2rgb(p, q, h + 1/3);
         g = hue2rgb(p, q, h);
-        b = hue2rgb(p, q, h - 1 / 3);
+        b = hue2rgb(p, q, h - 1/3);
     }
     return { r: r * 255, g: g * 255, b: b * 255 };
 }
 
-// --- Math helpers ---
+// --- Math ---
 export function clamp(value, min, max) {
     return Math.max(min, Math.min(max, value));
 }
@@ -94,7 +94,7 @@ export function angle(x1, y1, x2, y2) {
     return Math.atan2(y2 - y1, x2 - x1);
 }
 
-// --- File helpers ---
+// --- File ---
 export function formatFileSize(bytes) {
     if (bytes < 1024) return bytes + ' B';
     if (bytes < 1048576) return (bytes / 1024).toFixed(1) + ' KB';
@@ -107,14 +107,12 @@ export function getFileExtension(filename) {
     return parts.length > 1 ? parts.pop().toLowerCase() : '';
 }
 
-// --- Status bar helpers ---
+// --- Status ---
 export function showStatus(message, duration = 2000) {
     const status = document.getElementById('status-tool');
     if (!status) return;
-
     const original = status.textContent;
     status.textContent = message;
-
     if (duration > 0) {
         setTimeout(() => {
             if (status.textContent === message) {
@@ -124,7 +122,7 @@ export function showStatus(message, duration = 2000) {
     }
 }
 
-// --- Debounce ---
+// --- Timing ---
 export function debounce(fn, delay) {
     let timer = null;
     return function (...args) {
@@ -133,7 +131,6 @@ export function debounce(fn, delay) {
     };
 }
 
-// --- Throttle ---
 export function throttle(fn, limit) {
     let inThrottle = false;
     return function (...args) {
@@ -145,9 +142,22 @@ export function throttle(fn, limit) {
     };
 }
 
-// --- Deep clone ---
+// --- Object ---
 export function deepClone(obj) {
     return JSON.parse(JSON.stringify(obj));
+}
+
+// --- Random ---
+export function random(min, max) {
+    return Math.random() * (max - min) + min;
+}
+
+export function randomInt(min, max) {
+    return Math.floor(random(min, max + 1));
+}
+
+export function randomColor() {
+    return `hsl(${randomInt(0, 360)}, ${randomInt(50, 100)}%, ${randomInt(40, 80)}%)`;
 }
 
 // --- Expose ---
@@ -156,5 +166,6 @@ window.__utils = {
     hexToRgb, rgbToHex, rgbToHsl, hslToRgb,
     clamp, lerp, distance, angle,
     formatFileSize, getFileExtension,
-    showStatus, debounce, throttle, deepClone
+    showStatus, debounce, throttle, deepClone,
+    random, randomInt, randomColor
 };
